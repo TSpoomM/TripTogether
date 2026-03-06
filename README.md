@@ -1,0 +1,2 @@
+# TripTogether
+Software Architecture project
