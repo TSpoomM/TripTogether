@@ -1,7 +1,7 @@
 import { TripController } from "@/modules/trip/trip.controller";
 
-export async function GET() {
-    return TripController.getAll();
+export async function GET(request: Request) {
+    return TripController.getAll(request);
 }
 
 export async function POST(request: Request) {

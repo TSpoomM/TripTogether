@@ -29,6 +29,7 @@ model User {
   memberships  TripMember[]
   proposals    Destination[]
   votes        Vote[]
+  messages     TripMessage[]
 }
 
 model Trip {
@@ -37,11 +38,13 @@ model Trip {
   description String?
   status      TripStatus    @default(OPEN)
   ownerId     String
+  inviteCode  String        @unique
   createdAt   DateTime      @default(now())
 
   owner        User          @relation("TripOwner", fields: [ownerId], references: [id])
   members      TripMember[]
   destinations Destination[]
+  messages     TripMessage[]
 }
 
 model TripMember {
@@ -82,4 +85,15 @@ model Vote {
   user        User        @relation(fields: [userId], references: [id], onDelete: Cascade)
 
   @@unique([destinationId, userId])
+}
+
+model TripMessage {
+  id        String   @id @default(cuid())
+  tripId    String
+  senderId  String
+  text      String
+  createdAt DateTime @default(now())
+
+  trip   Trip @relation(fields: [tripId], references: [id], onDelete: Cascade)
+  sender User @relation(fields: [senderId], references: [id], onDelete: Cascade)
 }
