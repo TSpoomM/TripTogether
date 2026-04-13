@@ -1,0 +1,85 @@
+generator client {
+  provider = "prisma-client-js"
+}
+
+datasource db {
+  provider = "postgresql"
+}
+
+enum UserRole {
+  TRIP_OWNER
+  MEMBER
+  ADMIN
+}
+
+enum TripStatus {
+  OPEN
+  FINALIZED
+}
+
+model User {
+  id           String       @id @default(cuid())
+  name         String
+  email        String       @unique
+  passwordHash String
+  role         UserRole     @default(MEMBER)
+  createdAt    DateTime     @default(now())
+
+  ownedTrips   Trip[]       @relation("TripOwner")
+  memberships  TripMember[]
+  proposals    Destination[]
+  votes        Vote[]
+}
+
+model Trip {
+  id          String        @id @default(cuid())
+  title       String
+  description String?
+  status      TripStatus    @default(OPEN)
+  ownerId     String
+  createdAt   DateTime      @default(now())
+
+  owner        User          @relation("TripOwner", fields: [ownerId], references: [id])
+  members      TripMember[]
+  destinations Destination[]
+}
+
+model TripMember {
+  id       String   @id @default(cuid())
+  tripId    String
+  userId    String
+  joinedAt  DateTime @default(now())
+
+  trip Trip @relation(fields: [tripId], references: [id], onDelete: Cascade)
+  user User @relation(fields: [userId], references: [id], onDelete: Cascade)
+
+  @@unique([tripId, userId])
+}
+
+model Destination {
+  id              String   @id @default(cuid())
+  tripId          String
+  proposedById    String
+  placeName       String
+  description     String?
+  estimatedBudget Float?
+  category        String?
+  createdAt       DateTime @default(now())
+
+  trip       Trip   @relation(fields: [tripId], references: [id], onDelete: Cascade)
+  proposedBy User   @relation(fields: [proposedById], references: [id])
+  votes      Vote[]
+}
+
+model Vote {
+  id            String   @id @default(cuid())
+  destinationId String
+  userId        String
+  score         Int
+  createdAt     DateTime @default(now())
+
+  destination Destination @relation(fields: [destinationId], references: [id], onDelete: Cascade)
+  user        User        @relation(fields: [userId], references: [id], onDelete: Cascade)
+
+  @@unique([destinationId, userId])
+}
