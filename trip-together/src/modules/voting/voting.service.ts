@@ -5,14 +5,13 @@ import { canModifyTrip } from "@/domain/rules/trip.rules";
 
 const createVoteSchema = z.object({
     destinationId: z.string().min(1, "Destination ID is required"),
-    userId: z.string().min(1, "User ID is required"),
     score: z.number().int().min(1).max(5),
 });
 
 export class VotingService {
     constructor(private readonly votingRepository = new VotingRepository()) { }
 
-    async createVote(input: unknown) {
+    async createVote(input: unknown, userId: string) {
         const parsed = createVoteSchema.parse(input);
 
         const destination = await prisma.destination.findUnique({
@@ -30,16 +29,32 @@ export class VotingService {
             throw new Error("Cannot vote on a finalized trip");
         }
 
+        const membership = await prisma.tripMember.findUnique({
+            where: {
+                tripId_userId: {
+                    tripId: destination.tripId,
+                    userId,
+                },
+            },
+        });
+
+        if (!membership && destination.trip.ownerId !== userId) {
+            throw new Error("Only trip members can vote");
+        }
+
         const existingVote = await this.votingRepository.findUserVote(
             parsed.destinationId,
-            parsed.userId
+            userId
         );
 
         if (existingVote) {
             throw new Error("You have already voted for this destination");
         }
 
-        return this.votingRepository.create(parsed);
+        return this.votingRepository.create({
+            ...parsed,
+            userId,
+        });
     }
 
     async getVotesByDestinationId(destinationId: string) {

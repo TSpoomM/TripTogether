@@ -70,7 +70,21 @@ export default function TripDetailPage({
 }) {
     const router = useRouter();
     const [tripId, setTripId] = useState("");
-    const [currentUser, setCurrentUser] = useState<StoredUser | null>(null);
+    const [currentUser] = useState<StoredUser | null>(() => {
+        if (typeof window === "undefined") {
+            return null;
+        }
+        const token = localStorage.getItem("token");
+        const rawUser = localStorage.getItem("user");
+        if (!token || !rawUser) {
+            return null;
+        }
+        try {
+            return JSON.parse(rawUser);
+        } catch {
+            return null;
+        }
+    });
     const [destinations, setDestinations] = useState<Destination[]>([]);
     const [placeName, setPlaceName] = useState("");
     const [description, setDescription] = useState("");
@@ -79,30 +93,22 @@ export default function TripDetailPage({
     const [message, setMessage] = useState("");
     const [summary, setSummary] = useState<TripSummary | null>(null);
     const [trip, setTrip] = useState<TripDetail | null>(null);
-    const [checkingAuth, setCheckingAuth] = useState(true);
 
     useEffect(() => {
         params.then((p) => setTripId(p.id));
-
-        const token = localStorage.getItem("token");
-        const rawUser = localStorage.getItem("user");
-        if (!token || !rawUser) {
-            router.replace("/login");
-            return;
-        }
-
-        try {
-            setCurrentUser(JSON.parse(rawUser));
-            setCheckingAuth(false);
-        } catch {
+        if (!currentUser) {
             localStorage.removeItem("token");
             localStorage.removeItem("user");
             router.replace("/login");
         }
-    }, [params, router]);
+    }, [params, router, currentUser]);
 
     const loadDestinations = async (id: string) => {
+        const token = localStorage.getItem("token");
         const res = await fetch(`/api/trips/${id}/destinations`, {
+            headers: {
+                Authorization: `Bearer ${token ?? ""}`,
+            },
             cache: "no-store",
         });
         const result = await res.json();
@@ -113,7 +119,11 @@ export default function TripDetailPage({
     };
 
     const loadSummary = async (id: string) => {
+        const token = localStorage.getItem("token");
         const res = await fetch(`/api/trips/${id}/summary`, {
+            headers: {
+                Authorization: `Bearer ${token ?? ""}`,
+            },
             cache: "no-store",
         });
 
@@ -124,9 +134,13 @@ export default function TripDetailPage({
         }
     };
 
-    const loadTrip = async (id: string, userId: string) => {
-        const res = await fetch(`/api/trips?userId=${encodeURIComponent(userId)}`, {
+    const loadTrip = async (id: string) => {
+        const token = localStorage.getItem("token");
+        const res = await fetch("/api/trips", {
             method: "GET",
+            headers: {
+                Authorization: `Bearer ${token ?? ""}`,
+            },
             cache: "no-store",
         });
 
@@ -139,28 +153,33 @@ export default function TripDetailPage({
     };
 
     useEffect(() => {
-        if (tripId && !checkingAuth) {
-            if (!currentUser) {
-                return;
-            }
-            loadTrip(tripId, currentUser.id);
+        if (tripId && currentUser) {
+            // eslint-disable-next-line react-hooks/set-state-in-effect
+            loadTrip(tripId);
             loadDestinations(tripId);
         }
-    }, [tripId, checkingAuth, currentUser]);
+    }, [tripId, currentUser]);
 
     useEffect(() => {
-        if (trip?.status === "FINALIZED") {
-            loadSummary(trip.id);
-        } else {
-            setSummary(null);
+        if (!trip) {
+            return;
         }
+        if (trip.status !== "FINALIZED") {
+            // eslint-disable-next-line react-hooks/set-state-in-effect
+            setSummary(null);
+            return;
+        }
+
+        (async () => {
+            await loadSummary(trip.id);
+        })();
     }, [trip]);
 
-    if (checkingAuth) {
+    if (!currentUser) {
         return (
             <main className="px-6 py-10">
                 <div className="mx-auto max-w-4xl rounded-3xl border border-slate-200 bg-white/90 p-6 text-slate-600 shadow-lg shadow-indigo-100/60">
-                    Checking login...
+                    Redirecting to login...
                 </div>
             </main>
         );
@@ -178,10 +197,10 @@ export default function TripDetailPage({
             method: "POST",
             headers: {
                 "Content-Type": "application/json",
+                Authorization: `Bearer ${localStorage.getItem("token") ?? ""}`,
             },
             body: JSON.stringify({
                 destinationId,
-                userId: currentUser.id,
                 score,
             }),
         });
@@ -212,10 +231,10 @@ export default function TripDetailPage({
             method: "POST",
             headers: {
                 "Content-Type": "application/json",
+                Authorization: `Bearer ${localStorage.getItem("token") ?? ""}`,
             },
             body: JSON.stringify({
                 tripId: trip.id,
-                userId: currentUser.id,
             }),
         });
 
@@ -227,7 +246,7 @@ export default function TripDetailPage({
         }
 
         setMessage("Trip finalized successfully");
-        await loadTrip(trip.id, currentUser.id);
+        await loadTrip(trip.id);
         await loadSummary(trip.id);
     };
 
@@ -244,10 +263,10 @@ export default function TripDetailPage({
             method: "POST",
             headers: {
                 "Content-Type": "application/json",
+                Authorization: `Bearer ${localStorage.getItem("token") ?? ""}`,
             },
             body: JSON.stringify({
                 tripId,
-                proposedById: currentUser.id,
                 placeName,
                 description,
                 category,

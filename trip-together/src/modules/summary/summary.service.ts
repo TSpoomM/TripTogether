@@ -2,18 +2,31 @@ import { prisma } from "@/infrastructure/db/prisma";
 import type { RankedDestination } from "./summary.types";
 
 export class SummaryService {
-    async getTripSummary(tripId: string) {
+    async getTripSummary(tripId: string, userId: string) {
         if (!tripId) {
             throw new Error("Trip ID is required");
         }
 
         const trip = await prisma.trip.findUnique({
             where: { id: tripId },
-            select: { status: true },
+            select: { status: true, ownerId: true },
         });
 
         if (!trip) {
             throw new Error("Trip not found");
+        }
+
+        const membership = await prisma.tripMember.findUnique({
+            where: {
+                tripId_userId: {
+                    tripId,
+                    userId,
+                },
+            },
+        });
+
+        if (!membership && trip.ownerId !== userId) {
+            throw new Error("Only trip members can view summary");
         }
 
         if (trip.status !== "FINALIZED") {

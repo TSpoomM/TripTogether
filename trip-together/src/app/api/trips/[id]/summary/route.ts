@@ -5,5 +5,5 @@ export async function GET(
     context: { params: Promise<{ id: string }> }
 ) {
     const params = await context.params;
-    return SummaryController.getTripSummary(params.id);
+    return SummaryController.getTripSummary(request, params.id);
 }

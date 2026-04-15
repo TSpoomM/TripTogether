@@ -5,5 +5,5 @@ export async function GET(
     context: { params: Promise<{ id: string }> }
 ) {
     const params = await context.params;
-    return DestinationController.getByTripId(params.id);
+    return DestinationController.getByTripId(request, params.id);
 }

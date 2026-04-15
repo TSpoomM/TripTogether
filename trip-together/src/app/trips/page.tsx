@@ -13,34 +13,35 @@ interface StoredUser {
 
 export default function TripsPage() {
     const router = useRouter();
-    const [currentUser, setCurrentUser] = useState<StoredUser | null>(null);
-    const [checkingAuth, setCheckingAuth] = useState(true);
-
-    useEffect(() => {
+    const [currentUser] = useState<StoredUser | null>(() => {
+        if (typeof window === "undefined") {
+            return null;
+        }
         const token = localStorage.getItem("token");
         const rawUser = localStorage.getItem("user");
         if (!token || !rawUser) {
-            router.replace("/login");
-            return;
+            return null;
         }
-
         try {
-            const parsedUser: StoredUser = JSON.parse(rawUser);
-            setCurrentUser(parsedUser);
+            return JSON.parse(rawUser);
         } catch {
+            return null;
+        }
+    });
+
+    useEffect(() => {
+        if (!currentUser) {
             localStorage.removeItem("token");
             localStorage.removeItem("user");
             router.replace("/login");
-            return;
         }
-        setCheckingAuth(false);
-    }, [router]);
+    }, [router, currentUser]);
 
-    if (checkingAuth) {
+    if (!currentUser) {
         return (
             <main className="px-6 py-10">
                 <div className="mx-auto max-w-5xl rounded-3xl border border-slate-200 bg-white/90 p-6 text-slate-600 shadow-lg shadow-indigo-100/60">
-                    Checking login...
+                    Redirecting to login...
                 </div>
             </main>
         );

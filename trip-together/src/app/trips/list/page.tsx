@@ -31,13 +31,30 @@ export default function TripListPage() {
     const router = useRouter();
     const [trips, setTrips] = useState<Trip[]>([]);
     const [message, setMessage] = useState("");
-    const [currentUser, setCurrentUser] = useState<StoredUser | null>(null);
-    const [checkingAuth, setCheckingAuth] = useState(true);
-
-    const loadTrips = async (userId: string) => {
+    const [currentUser] = useState<StoredUser | null>(() => {
+        if (typeof window === "undefined") {
+            return null;
+        }
+        const token = localStorage.getItem("token");
+        const rawUser = localStorage.getItem("user");
+        if (!token || !rawUser) {
+            return null;
+        }
         try {
-            const res = await fetch(`/api/trips?userId=${encodeURIComponent(userId)}`, {
+            return JSON.parse(rawUser);
+        } catch {
+            return null;
+        }
+    });
+
+    const loadTrips = async () => {
+        try {
+            const token = localStorage.getItem("token");
+            const res = await fetch("/api/trips", {
                 method: "GET",
+                headers: {
+                    Authorization: `Bearer ${token ?? ""}`,
+                },
                 cache: "no-store",
             });
             const result = await res.json();
@@ -52,25 +69,15 @@ export default function TripListPage() {
     };
 
     useEffect(() => {
-        const token = localStorage.getItem("token");
-        const rawUser = localStorage.getItem("user");
-        if (!token || !rawUser) {
-            router.replace("/login");
-            return;
-        }
-
-        try {
-            const parsedUser: StoredUser = JSON.parse(rawUser);
-            setCurrentUser(parsedUser);
-            loadTrips(parsedUser.id);
-        } catch {
+        if (!currentUser) {
             localStorage.removeItem("token");
             localStorage.removeItem("user");
             router.replace("/login");
             return;
         }
-        setCheckingAuth(false);
-    }, [router]);
+        // eslint-disable-next-line react-hooks/set-state-in-effect
+        loadTrips();
+    }, [router, currentUser]);
 
     const handleJoin = async (inviteCode: string) => {
         if (!currentUser) {
@@ -78,12 +85,15 @@ export default function TripListPage() {
         }
 
         setMessage("");
+        const token = localStorage.getItem("token");
         const res = await fetch("/api/trips/join", {
             method: "POST",
-            headers: { "Content-Type": "application/json" },
+            headers: {
+                "Content-Type": "application/json",
+                Authorization: `Bearer ${token ?? ""}`,
+            },
             body: JSON.stringify({
                 inviteCode,
-                userId: currentUser.id,
             }),
         });
 
@@ -94,19 +104,22 @@ export default function TripListPage() {
         }
 
         setMessage("Joined trip successfully");
-        loadTrips(currentUser.id);
+        loadTrips();
     };
 
     const handleDelete = async (tripId: string) => {
         if (!currentUser) {
             return;
         }
+        const token = localStorage.getItem("token");
         const res = await fetch("/api/trips/delete", {
             method: "POST",
-            headers: { "Content-Type": "application/json" },
+            headers: {
+                "Content-Type": "application/json",
+                Authorization: `Bearer ${token ?? ""}`,
+            },
             body: JSON.stringify({
                 tripId,
-                userId: currentUser.id,
             }),
         });
         const result = await res.json();
@@ -115,19 +128,22 @@ export default function TripListPage() {
             return;
         }
         setMessage("Trip deleted successfully");
-        loadTrips(currentUser.id);
+        loadTrips();
     };
 
     const handleLeave = async (tripId: string) => {
         if (!currentUser) {
             return;
         }
+        const token = localStorage.getItem("token");
         const res = await fetch("/api/trips/leave", {
             method: "POST",
-            headers: { "Content-Type": "application/json" },
+            headers: {
+                "Content-Type": "application/json",
+                Authorization: `Bearer ${token ?? ""}`,
+            },
             body: JSON.stringify({
                 tripId,
-                userId: currentUser.id,
             }),
         });
         const result = await res.json();
@@ -136,14 +152,14 @@ export default function TripListPage() {
             return;
         }
         setMessage("Left trip successfully");
-        loadTrips(currentUser.id);
+        loadTrips();
     };
 
-    if (checkingAuth) {
+    if (!currentUser) {
         return (
             <main className="px-6 py-10">
                 <div className="mx-auto max-w-5xl rounded-3xl border border-slate-200 bg-white/90 p-6 text-slate-600 shadow-lg shadow-indigo-100/60">
-                    Checking login...
+                    Redirecting to login...
                 </div>
             </main>
         );

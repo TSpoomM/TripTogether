@@ -1,16 +1,11 @@
 "use client";
 
 import Link from "next/link";
-import { useEffect, useState } from "react";
 
 export default function HomePage() {
-  const [isLoggedIn, setIsLoggedIn] = useState(false);
-
-  useEffect(() => {
-    const token = localStorage.getItem("token");
-    const rawUser = localStorage.getItem("user");
-    setIsLoggedIn(Boolean(token && rawUser));
-  }, []);
+  const isLoggedIn =
+    typeof window !== "undefined" &&
+    Boolean(localStorage.getItem("token") && localStorage.getItem("user"));
 
   return (
     <main className="px-6 py-14 sm:px-10">

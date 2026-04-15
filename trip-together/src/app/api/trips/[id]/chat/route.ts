@@ -1,5 +1,6 @@
 import { prisma } from "@/infrastructure/db/prisma";
 import { NextResponse } from "next/server";
+import { getAuthUserFromRequest } from "@/infrastructure/auth/jwt";
 
 async function isTripMember(tripId: string, userId: string) {
     const trip = await prisma.trip.findUnique({
@@ -25,15 +26,10 @@ export async function GET(
     context: { params: Promise<{ id: string }> }
 ) {
     try {
-        const { searchParams } = new URL(request.url);
-        const userId = searchParams.get("userId");
+        const authUser = getAuthUserFromRequest(request);
         const params = await context.params;
 
-        if (!userId) {
-            return NextResponse.json({ success: false, message: "User ID is required" }, { status: 400 });
-        }
-
-        const canAccess = await isTripMember(params.id, userId);
+        const canAccess = await isTripMember(params.id, authUser.userId);
         if (!canAccess) {
             return NextResponse.json({ success: false, message: "Only trip members can access chat" }, { status: 403 });
         }
@@ -67,19 +63,19 @@ export async function POST(
     context: { params: Promise<{ id: string }> }
 ) {
     try {
+        const authUser = getAuthUserFromRequest(request);
         const body = await request.json();
-        const userId = body?.userId as string | undefined;
         const text = body?.text as string | undefined;
         const params = await context.params;
 
-        if (!userId || !text?.trim()) {
+        if (!text?.trim()) {
             return NextResponse.json(
-                { success: false, message: "User ID and message text are required" },
+                { success: false, message: "Message text is required" },
                 { status: 400 }
             );
         }
 
-        const canAccess = await isTripMember(params.id, userId);
+        const canAccess = await isTripMember(params.id, authUser.userId);
         if (!canAccess) {
             return NextResponse.json({ success: false, message: "Only trip members can send messages" }, { status: 403 });
         }
@@ -87,7 +83,7 @@ export async function POST(
         const message = await prisma.tripMessage.create({
             data: {
                 tripId: params.id,
-                senderId: userId,
+                senderId: authUser.userId,
                 text: text.trim(),
             },
             include: {

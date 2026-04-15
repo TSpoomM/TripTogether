@@ -1,8 +1,7 @@
 "use client";
 
 import Link from "next/link";
-import { usePathname, useRouter } from "next/navigation";
-import { useEffect, useState } from "react";
+import { useRouter } from "next/navigation";
 
 interface StoredUser {
     id: string;
@@ -13,29 +12,27 @@ interface StoredUser {
 
 export default function AppNavbar() {
     const router = useRouter();
-    const pathname = usePathname();
-    const [currentUser, setCurrentUser] = useState<StoredUser | null>(null);
+    const currentUser: StoredUser | null = (() => {
+        if (typeof window === "undefined") {
+            return null;
+        }
 
-    useEffect(() => {
         const token = localStorage.getItem("token");
         const rawUser = localStorage.getItem("user");
-
         if (!token || !rawUser) {
-            setCurrentUser(null);
-            return;
+            return null;
         }
 
         try {
-            setCurrentUser(JSON.parse(rawUser));
+            return JSON.parse(rawUser);
         } catch {
-            setCurrentUser(null);
+            return null;
         }
-    }, [pathname]);
+    })();
 
     const handleLogout = () => {
         localStorage.removeItem("token");
         localStorage.removeItem("user");
-        setCurrentUser(null);
         router.push("/login");
     };
 

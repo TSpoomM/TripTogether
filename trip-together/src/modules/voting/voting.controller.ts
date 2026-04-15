@@ -1,25 +1,28 @@
 import { NextResponse } from "next/server";
 import { VotingService } from "./voting.service";
+import { getAuthUserFromRequest } from "@/infrastructure/auth/jwt";
 
 const votingService = new VotingService();
 
 export class VotingController {
     static async create(request: Request) {
         try {
+            const authUser = getAuthUserFromRequest(request);
             const body = await request.json();
-            const vote = await votingService.createVote(body);
+            const vote = await votingService.createVote(body, authUser.userId);
 
             return NextResponse.json(
                 { success: true, data: vote },
                 { status: 201 }
             );
         } catch (error) {
+            const message = error instanceof Error ? error.message : "Failed to create vote";
             return NextResponse.json(
                 {
                     success: false,
-                    message: error instanceof Error ? error.message : "Failed to create vote",
+                    message,
                 },
-                { status: 400 }
+                { status: message === "Unauthorized" ? 401 : 400 }
             );
         }
     }

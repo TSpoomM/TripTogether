@@ -1,7 +1,7 @@
 "use client";
 
 import { useRouter } from "next/navigation";
-import { useEffect, useState } from "react";
+import { useCallback, useEffect, useState } from "react";
 
 interface StoredUser {
     id: string;
@@ -25,34 +25,36 @@ export default function TripChatPage({
 }) {
     const router = useRouter();
     const [tripId, setTripId] = useState("");
-    const [currentUser, setCurrentUser] = useState<StoredUser | null>(null);
+    const [currentUser] = useState<StoredUser | null>(() => {
+        if (typeof window === "undefined") {
+            return null;
+        }
+        const token = localStorage.getItem("token");
+        const rawUser = localStorage.getItem("user");
+        if (!token || !rawUser) {
+            return null;
+        }
+        try {
+            return JSON.parse(rawUser);
+        } catch {
+            return null;
+        }
+    });
     const [trip, setTrip] = useState<TripDetail | null>(null);
     const [chatInput, setChatInput] = useState("");
     const [chatMessages, setChatMessages] = useState<
         { id: string; text: string; createdAt: string; sender: { name: string } }[]
     >([]);
-    const [checkingAuth, setCheckingAuth] = useState(true);
     const [message, setMessage] = useState("");
 
     useEffect(() => {
         params.then((p) => setTripId(p.id));
-
-        const token = localStorage.getItem("token");
-        const rawUser = localStorage.getItem("user");
-        if (!token || !rawUser) {
-            router.replace("/login");
-            return;
-        }
-
-        try {
-            setCurrentUser(JSON.parse(rawUser));
-            setCheckingAuth(false);
-        } catch {
+        if (!currentUser) {
             localStorage.removeItem("token");
             localStorage.removeItem("user");
             router.replace("/login");
         }
-    }, [params, router]);
+    }, [params, router, currentUser]);
 
     useEffect(() => {
         if (!tripId || !currentUser) {
@@ -60,7 +62,10 @@ export default function TripChatPage({
         }
 
         const loadTrip = async () => {
-            const res = await fetch(`/api/trips?userId=${encodeURIComponent(currentUser.id)}`, {
+            const res = await fetch("/api/trips", {
+                headers: {
+                    Authorization: `Bearer ${localStorage.getItem("token") ?? ""}`,
+                },
                 cache: "no-store",
             });
             const result = await res.json();
@@ -73,11 +78,14 @@ export default function TripChatPage({
         loadTrip();
     }, [tripId, currentUser]);
 
-    const loadMessages = async () => {
+    const loadMessages = useCallback(async () => {
         if (!tripId || !currentUser) {
             return;
         }
-        const res = await fetch(`/api/trips/${tripId}/chat?userId=${encodeURIComponent(currentUser.id)}`, {
+        const res = await fetch(`/api/trips/${tripId}/chat`, {
+            headers: {
+                Authorization: `Bearer ${localStorage.getItem("token") ?? ""}`,
+            },
             cache: "no-store",
         });
         const raw = await res.text();
@@ -88,11 +96,12 @@ export default function TripChatPage({
             return;
         }
         setMessage(result?.message || "Failed to load chat messages");
-    };
+    }, [tripId, currentUser]);
 
     useEffect(() => {
+        // eslint-disable-next-line react-hooks/set-state-in-effect
         loadMessages();
-    }, [tripId, currentUser]);
+    }, [loadMessages]);
 
     const isTripMember = Boolean(
         currentUser &&
@@ -109,9 +118,11 @@ export default function TripChatPage({
 
         fetch(`/api/trips/${tripId}/chat`, {
             method: "POST",
-            headers: { "Content-Type": "application/json" },
+            headers: {
+                "Content-Type": "application/json",
+                Authorization: `Bearer ${localStorage.getItem("token") ?? ""}`,
+            },
             body: JSON.stringify({
-                userId: currentUser.id,
                 text: chatInput.trim(),
             }),
         }).then(async (res) => {
@@ -127,11 +138,11 @@ export default function TripChatPage({
         setChatInput("");
     };
 
-    if (checkingAuth) {
+    if (!currentUser) {
         return (
             <main className="px-6 py-10">
                 <div className="mx-auto max-w-4xl rounded-3xl border border-slate-200 bg-white/90 p-6 text-slate-600 shadow-lg shadow-indigo-100/60">
-                    Checking login...
+                    Redirecting to login...
                 </div>
             </main>
         );

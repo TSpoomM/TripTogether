@@ -14,27 +14,29 @@ export default function JoinTripPage() {
     const router = useRouter();
     const [inviteCode, setInviteCode] = useState("");
     const [message, setMessage] = useState("");
-    const [currentUser, setCurrentUser] = useState<StoredUser | null>(null);
-    const [checkingAuth, setCheckingAuth] = useState(true);
-
-    useEffect(() => {
+    const [currentUser] = useState<StoredUser | null>(() => {
+        if (typeof window === "undefined") {
+            return null;
+        }
         const token = localStorage.getItem("token");
         const rawUser = localStorage.getItem("user");
         if (!token || !rawUser) {
-            router.replace("/login");
-            return;
+            return null;
         }
-
         try {
-            setCurrentUser(JSON.parse(rawUser));
+            return JSON.parse(rawUser);
         } catch {
+            return null;
+        }
+    });
+
+    useEffect(() => {
+        if (!currentUser) {
             localStorage.removeItem("token");
             localStorage.removeItem("user");
             router.replace("/login");
-            return;
         }
-        setCheckingAuth(false);
-    }, [router]);
+    }, [router, currentUser]);
 
     const handleJoinTrip = async (e: React.FormEvent) => {
         e.preventDefault();
@@ -45,12 +47,15 @@ export default function JoinTripPage() {
             return;
         }
 
+        const token = localStorage.getItem("token");
         const res = await fetch("/api/trips/join", {
             method: "POST",
-            headers: { "Content-Type": "application/json" },
+            headers: {
+                "Content-Type": "application/json",
+                Authorization: `Bearer ${token ?? ""}`,
+            },
             body: JSON.stringify({
                 inviteCode,
-                userId: currentUser.id,
             }),
         });
 
@@ -64,11 +69,11 @@ export default function JoinTripPage() {
         setInviteCode("");
     };
 
-    if (checkingAuth) {
+    if (!currentUser) {
         return (
             <main className="px-6 py-10">
                 <div className="mx-auto max-w-3xl rounded-3xl border border-slate-200 bg-white/90 p-6 text-slate-600 shadow-lg shadow-indigo-100/60">
-                    Checking login...
+                    Redirecting to login...
                 </div>
             </main>
         );
