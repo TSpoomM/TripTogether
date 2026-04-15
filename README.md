@@ -1,197 +1,144 @@
-# TripTogether – Group Trip Planning & Decision Support System
+## Project Description
 
-## Overview
+TripTogether is a web-based collaborative platform designed to help groups plan trips and make decisions efficiently.
 
-TripTogether is a web-based collaborative platform designed to help small groups plan trips and make travel decisions together. The system allows users to propose destinations, vote on preferred options, and generate a summarized travel plan based on group preferences.
+Planning a trip with multiple people often leads to unstructured discussions, duplicated ideas, and difficulty reaching a final decision. TripTogether solves this problem by providing a centralized system where users can:
 
-Planning a trip with multiple people often results in long discussions, disagreements, and unorganized ideas. TripTogether provides a structured environment where group members can contribute suggestions, vote on options, and reach a clear decision efficiently.
+- create trips
+- invite members
+- propose destinations
+- vote on preferred options
+- view summarized results
 
-The system is designed using modern software architecture principles, supporting layered architecture and scalable service-based design.
+The system transforms informal group discussions into a structured and data-driven decision-making process.
 
----
+## System Architecture Overview
 
-# Problem Statement
+The system follows a Layered Architecture with a Modular Monolith design.
 
-Planning trips in groups can be inefficient and confusing due to:
+### Architecture Layers
+- Presentation Layer
+  - Next.js pages and API routes
+  - Handles user interaction and HTTP requests
+- Application Layer
+  - Services (Auth, Trip, Destination, Voting, Summary)
+  - Contains business logic and use cases
+- Domain Layer
+  - Entities and business rules
+  - Example: trip rules, voting constraints
+- Infrastructure Layer
+  - Database (PostgreSQL)
+  - Prisma ORM
+  - JWT authentication
 
-* Unstructured discussions in messaging apps
-* Difficulty comparing multiple destination options
-* Lack of a centralized platform for group decision-making
-* Conflicts between member preferences, budgets, and schedules
+### Architecture Style
+- Layered Architecture
+- Modular Monolith
+- Designed for future migration to Microservices
 
-Without a structured system, reaching a final decision often takes a long time and leads to frustration among group members.
+## User Roles & Permissions
 
----
+### 1. Trip Owner
 
-# Objectives
+#### Responsibilities
 
-The main objectives of TripTogether are:
+- Create and manage trips
+- Invite members
+- Finalize trip
 
-* Provide a collaborative platform for group travel planning
-* Enable structured destination proposals and voting
-* Support decision-making through ranking and summarized results
-* Allow users to manage trips and invite participants
-* Provide role-based access control for system users
+#### Permissions
 
----
+- Full control over trip
+- View summary results
+- Close voting
 
-# Key Features
+### 2. Member
 
-## Trip Creation
+#### Responsibilities
 
-Users can create a new trip and define basic information such as trip name, description, date range, and preferences.
+- Propose destinations
+- Vote on destinations
 
-## Destination Proposal
+#### Permissions
 
-Trip members can propose travel destinations including name, category, estimated budget, and description.
+- Join trip via invite code
+- View trip data
+- Participate in voting
 
-## Voting System
+### 3. Admin
 
-Members can vote for destinations proposed by other users to express their preferences.
+#### Responsibilities
 
-## Trip Summary
+- Manage system users
+- Monitor system
 
-The system calculates ranking scores based on votes and presents the most preferred destinations.
+#### Permissions
 
-## Member Management
+- Access system-level data
+- Manage accounts
 
-Trip owners can invite members and manage participant permissions.
+## Technology Stack
 
-## Notification System
+### Frontend
+- Next.js (React)
+- TypeScript
+- Tailwind CSS
 
-Users receive notifications when new destinations are proposed or when votes are submitted.
+### Backend / API
+- Next.js Route Handlers
+- Node.js
 
----
+### Database
+- PostgreSQL
+- Prisma ORM
 
-# User Roles
+### Authentication
+- JWT (JSON Web Token)
+- bcryptjs (password hashing)
 
-## 1. Trip Owner
+### Validation
+- Zod
 
-Responsibilities:
-
-* Create and manage trips
-* Invite members to join a trip
-* Configure trip preferences
-* Close voting and finalize trip decisions
-
-Permissions:
-
-* Full control over trip settings
-* Manage participants
-* View trip summary and final results
-
----
-
-## 2. Member
-
-Responsibilities:
-
-* Propose travel destinations
-* Vote for preferred destinations
-* Participate in trip discussions
-
-Permissions:
-
-* Add destination proposals
-* Submit votes
-* View trip details and voting results
-
----
-
-## 3. System Administrator
-
-Responsibilities:
-
-* Manage system users
-* Monitor platform activity
-* Maintain system integrity
-
-Permissions:
-
-* Manage user accounts
-* Remove inappropriate content
-* Access system-wide reports
-
----
-
-# System Workflow
-
-1. A user registers and logs into the system.
-2. The user creates a new trip as the Trip Owner.
-3. The Trip Owner invites members to join the trip.
-4. Members propose travel destinations.
-5. Members vote on their preferred destinations.
-6. The system calculates ranking scores based on votes.
-7. The Trip Owner reviews the results and finalizes the destination.
-
----
-
-# System Architecture
-
-The system follows a **Layered Architecture** approach to separate responsibilities and improve maintainability.
-
-Layers include:
-
-* **Presentation Layer**
-  Handles the user interface and interaction with the system.
-
-* **Application Layer**
-  Contains business logic and coordinates application workflows.
-
-* **Domain Layer**
-  Defines core entities such as Trip, Destination, and Vote.
-
-* **Infrastructure Layer**
-  Manages database access, external services, and system integrations.
-
-The architecture is designed to support future extension into a **Microservices Architecture**, where services such as authentication, trip management, and voting can be separated into independent services.
-
----
-
-# Technology Stack
-
-Frontend:
-
-* React / Next.js
-* Tailwind CSS
-
-Backend:
-
-* Node.js
-* NestJS
-
-Database:
-
-* PostgreSQL
-
-Authentication:
-
-* JWT (JSON Web Token)
-
-Optional Future Services:
-
-* Notification Service
-* Recommendation Service
-* API Gateway
-
----
-
-# Future Improvements
-
-Possible future enhancements include:
-
-* Integration with map services
-* AI-based travel recommendation
-* Real-time collaboration features
-* Mobile application support
-* Integration with booking platforms
-
----
-
-# License
-
-This project is developed for educational purposes as part of a Software Architecture course.
-
+## Installation & Setup Instructions
+
+###  1. Clone Repository
+
+```
+git clone <your-repo-url>
+cd trip-together
+```
+
+### 2. Install Dependencies
+```
+npm install
+```
+
+### 3. Setup Environment Variables
+```
+DATABASE_URL="postgresql://postgres:postgres@localhost:5432/TripTogether_DB"
+JWT_SECRET="your-secret-key"
+```
+
+### 4. Setup Database
+```
+npx prisma migrate dev
+npx prisma generate
+```
+
+### 5. Seed Initial Data
+```
+npm run seed
+```
+
+## How to Run the System
+
+### 1. Run Development Server
+```
+npm run dev
+<!-- Open browser: http://localhost:3000 -->
+```
+
+![image](src/screenshot/Screenshot(315).png)
 
 # Architecture
 The system follows a Layered Architecture as the primary architectural pattern.
