@@ -138,7 +138,23 @@ npm run dev
 <!-- Open browser: http://localhost:3000 -->
 ```
 
-![image](src/screenshot/Screenshot(315).png)
+## screenshots of the system
+
+### HomePage
+![HomePage](./screenshot/Home.png)
+
+### ChooseTrip
+![ChooseTrip](./screenshot/ChooseTrip.png)
+
+### CreateTrip
+![CreateTrip](./screenshot/CreateTrip.png)
+
+### JoinTrip
+![JoinTrip](./screenshot/JoinTrip.png)
+
+### TripList
+![TripList](./screenshot/TripList.png)
+
 
 # Architecture
 The system follows a Layered Architecture as the primary architectural pattern.
